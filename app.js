@@ -3,12 +3,19 @@ import { Knight } from './Knights/rules.js';
 import { depthFirst } from './Knights/algorithm.js';
 import { Node } from './Puzzle/rules.js';
 import { bestFirst } from './Puzzle/algorithm.js';
-import { Heap } from './Puzzle/heap.js';
+import { MaxHeap } from './Puzzle/heap.js';
 
 let solutionPath = [];
 let currentStep = 0;
 let boardSize = 8;
 let currentProblem = 'knight';
+
+const knightTourSection = document.getElementById('knight-tour-section');
+const puzzleSection = document.getElementById('puzzle-section');
+const mazeSection = document.getElementById('maze-section');
+const knightTourBtn = document.getElementById('knight-tour-btn');
+const puzzleBtn = document.getElementById('puzzle-btn');
+const mazeBtn = document.getElementById('maze-btn');
 
 const boardContainer = document.getElementById('chessboard');
 const solveButton = document.getElementById('solveButton');
@@ -18,12 +25,56 @@ const statusMessage = document.getElementById('statusMessage');
 const stepControls = document.getElementById('stepControls');
 const controlsContainer = document.getElementById('controls-container'); 
 
+const solvePuzzle = document.getElementById('solve-puzzle');
+const statusPuzzle = document.getElementById('status-puzzle');
+const puzzleNext = document.getElementById('puzzleNext');
+const puzzleInfo = document.getElementById('puzzlInfo');
+
+const mazeInput = document.getElementById('maze-input');
+const solveMaze = document.getElementById('solve-maze');
+const statusMaze = document.getElementById('status-maze');
+//const mazeMap = document.getElementById('maze-map');
+const mazeResults = document.getElementById('maze-results');
+
 
 function displayMessage(text, isError = false) {
     statusMessage.textContent = text;
     statusMessage.className = `mt-4 p-3 rounded-lg text-sm font-medium text-center ${isError ? 'bg-red-100 text-red-700' : 'bg-yellow-100 text-yellow-700'}`;
     statusMessage.style.display = 'block';
 }
+
+
+function showSection(section) {
+    knightTourSection.classList.add('hidden');
+    puzzleSection.classList.add('hidden');
+    mazeSection.classList.add('hidden');
+
+    knightTourBtn.classList.replace('bg-blue-600', 'bg-gray-200');
+    knightTourBtn.classList.replace('text-white', 'text-gray-700');
+    puzzleBtn.classList.replace('bg-blue-600', 'bg-gray-200');
+    puzzleBtn.classList.replace('text-white', 'text-gray-700');
+    mazeBtn.classList.replace('bg-blue-600', 'bg-gray-200');
+    mazeBtn.classList.replace('text-white', 'text-gray-700');
+
+    section.classList.remove('hidden');
+    if (section === knightTourSection) {
+        currentProblem = 'knight';
+        knightTourBtn.classList.replace('bg-gray-200', 'bg-blue-600');
+        knightTourBtn.classList.replace('text-gray-700', 'text-white');
+    } else if (section === puzzleSection) {
+        currentProblem = 'puzzle';
+        puzzleBtn.classList.replace('bg-gray-200', 'bg-blue-600');
+        puzzleBtn.classList.replace('text-gray-700', 'text-white');
+    } else if (section === mazeSection) {
+        currentProblem = 'maze';
+        mazeBtn.classList.replace('bg-gray-200', 'bg-blue-600');
+        mazeBtn.classList.replace('text-gray-700', 'text-white');
+    }
+}
+
+knightTourBtn.addEventListener('click', () => showSection(knightTourSection));
+puzzleBtn.addEventListener('click', () => showSection(puzzleSection));
+mazeBtn.addEventListener('click', () => showSection(mazeSection));
 
 // KNIGHT STUFF
 function updateStepControls() {
@@ -160,16 +211,133 @@ solveButton.addEventListener('click', () => {
 });
 
 // PUZZLE STUFF
-function solvePuzzle() {
+function solvePuzzleProblem(){
 
 }
 
+solvePuzzle.addEventListener('click', () => {
+    statusPuzzle.style.display = 'none';
+    solvePuzzle.disabled = true;
+    solvePuzzle.textContent = 'Searching...';
+
+    if (currentProblem === 'puzzle') {
+        solvePuzzleProblem();
+    }
+});
+
+
+// MAZE STUFF
+function drawMaze(mapData) {
+    const gridContainer = document.getElementById('maze-map');
+    gridContainer.innerHTML = ''; 
+
+    const [rows, cols] = mapData.dimensions;
+    gridContainer.style.gridTemplateColumns = `repeat(${cols}, 1fr)`;
+    
+    const [startX, startY, endX, endY] = mapData.coords; 
+    console.log(endX, endY)
+
+    for (let r = 0; r < rows; r++) {
+        for (let c = 0; c < cols; c++) {
+            const cell = document.createElement('div');
+            cell.classList.add('maze-cell'); 
+            
+            if (mapData.transit[r][c] === 1) {
+                cell.style.backgroundColor = '#4b5563'; 
+            } else {
+                cell.style.backgroundColor = '#f3f4f6'; 
+            }
+
+            const seguridadValue = mapData.security[r][c];
+            const hue = (10 - seguridadValue) * 15;
+            cell.style.borderColor = `hsl(${hue}, 100%, 40%)`;
+            cell.style.borderStyle = 'solid';
+            cell.style.borderWidth = '2px';
+            
+            const traficoValue = mapData.traffic[r][c];
+            const dot = document.createElement('div');
+            const dotSize = traficoValue === 0 ? 0 : traficoValue * 4;
+            
+            dot.style.width = `${dotSize}px`; 
+            dot.style.height = `${dotSize}px`;
+            dot.style.backgroundColor = traficoValue > 0 ? '#ef4444' : 'transparent';
+            dot.style.borderRadius = '50%';
+            
+            cell.appendChild(dot);
+            
+            if (c === startX && r === startY) {
+                cell.classList.add('origin-cell');
+                cell.innerHTML = 'O'; 
+            } else if (c === endX && r === endY) {
+                cell.classList.add('destination-cell');
+                cell.innerHTML = 'D'; 
+            }
+            
+            gridContainer.appendChild(cell);
+        }
+    }
+}
+
+function getMazeInput(textMaze){
+    try{
+        const MAP_INFO = 2; 
+        const DIMENSIONS = textMaze[0].split(' ').map(Number);
+        const M = DIMENSIONS[0];
+        const COORDS = textMaze[1].split(' ').map(Number);
+        const maze = textMaze.slice(MAP_INFO + (M * 0), MAP_INFO + (M * 1)).map(rowString => rowString.split(' ').map(Number));
+        const security = textMaze.slice(MAP_INFO + (M * 1), MAP_INFO + (M * 2)).map(rowString => rowString.split(' ').map(Number));
+        const traffic = textMaze.slice(MAP_INFO + (M * 2), MAP_INFO + (M * 3)).map(rowString => rowString.split(' ').map(Number));
+
+        if(!( DIMENSIONS.length == 2 && COORDS.length == 4 && maze.length == M && security.length == M && traffic.length == M )){
+            throw new Error();
+        }
+
+        return {
+            M: M,
+            N: DIMENSIONS[1],
+            origin_coords: {x: COORDS[1], y: COORDS[0]},
+            destination_coords: {x: COORDS[3], y: COORDS[2]},
+            maze: maze,
+            security: security,
+            traffic: traffic
+        };
+    } catch {
+        return false;
+    }
+}
+
+function solveMazeProblem(){
+    const textMaze = mazeInput.value.split('\n');
+    const maze = getMazeInput(textMaze);
+    if(maze){
+        drawMaze({
+            dimensions: [maze.M, maze.N],
+            coords: [maze.origin_coords.x, maze.origin_coords.y, maze.destination_coords.x, maze.destination_coords.y],
+            transit: maze.maze,
+            security: maze.security,
+            traffic: maze.traffic
+        });
+    }
+}
+
+solveMaze.addEventListener('click', () => {
+    statusMaze.style.display = 'none';
+    solveMaze.disabled = true;
+    solveMaze.textContent = 'Searching...';
+
+    if (currentProblem === 'maze') {
+        solveMazeProblem();
+    }
+});
 
 
 // GENERAL STUFF
 document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('startX').max = document.getElementById('startY').max = 7;
     nextButton.addEventListener('click', handleNextStep);
+    puzzleSection.classList.add('hidden');
+    mazeSection.classList.add('hidden');
+    showSection(knightTourSection);
 });
 
 document.getElementById('boardSize').addEventListener('input', (e) => {
@@ -185,3 +353,4 @@ document.getElementById('boardSize').addEventListener('input', (e) => {
         document.getElementById('startY').value = 0;
     }
 });
+
