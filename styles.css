@@ -65,13 +65,48 @@
     padding: 2px; 
 }
 
+/* Nuevo estilo para el contenedor de la celda */
+.maze-cell {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 2px;
+    position: relative; /* Para posicionar el contenido */
+    overflow: hidden;
+    border: 2px solid transparent; /* Mantiene el espacio del borde */
+}
+
+/* Contenedor para el texto de tráfico y seguridad */
+.cell-content {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    font-size: 0.65rem;
+    line-height: 1;
+    font-weight: 500;
+}
+
+
+.trafico-text {
+    color: #3d0a06; 
+    font-weight: 700;
+}
+
+.seguridad-text {
+    color: #140667; 
+    font-weight: 700;
+}
+
 .origin-cell, .destination-cell {
-    font-size: 1.5rem; 
-    font-weight: 900; 
+    font-size: 1.5rem;
+    font-weight: 900;
     display: flex;
     align-items: center;
     justify-content: center;
-    background-color: #3b82f6 !important; 
+    background-color: #3b82f6 !important;
     color: white !important;
 }
 
