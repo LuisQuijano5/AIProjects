@@ -53,13 +53,6 @@ const statusMaze = document.getElementById('status-maze');
 const mazeResults = document.getElementById('maze-results');
 
 
-function displayMessage(text, isError = false) {
-    statusMessage.textContent = text;
-    statusMessage.className = `mt-4 p-3 rounded-lg text-sm font-medium text-center ${isError ? 'bg-red-100 text-red-700' : 'bg-yellow-100 text-yellow-700'}`;
-    statusMessage.style.display = 'block';
-}
-
-
 function showSection(section) {
     knightTourSection.classList.add('hidden');
     puzzleSection.classList.add('hidden');
@@ -93,6 +86,12 @@ puzzleBtn.addEventListener('click', () => showSection(puzzleSection));
 mazeBtn.addEventListener('click', () => showSection(mazeSection));
 
 // KNIGHT STUFF
+function displayMessage(text, isError = false) {
+    statusMessage.textContent = text;
+    statusMessage.className = `mt-4 p-3 rounded-lg text-sm font-medium text-center ${isError ? 'bg-red-100 text-red-700' : 'bg-yellow-100 text-yellow-700'}`;
+    statusMessage.style.display = 'block';
+}
+
 function updateStepControls() {
     stepInfo.textContent = `Step: ${currentStep + 1} / ${boardSize * boardSize}`;
     nextButton.disabled = currentStep >= solutionPath.length - 1;
@@ -394,7 +393,6 @@ function drawMaze(mapData) {
     gridContainer.style.gridTemplateColumns = `repeat(${cols}, 1fr)`;
     
     const [startX, startY, endX, endY] = mapData.coords; 
-    console.log(endX, endY)
 
     for (let r = 0; r < rows; r++) {
         for (let c = 0; c < cols; c++) {
@@ -402,34 +400,37 @@ function drawMaze(mapData) {
             cell.classList.add('maze-cell'); 
             
             if (mapData.transit[r][c] === 1) {
-                cell.style.backgroundColor = '#4b5563'; 
+                cell.style.backgroundColor = 'rgba(145, 148, 144, 0.8)'; 
             } else {
                 cell.style.backgroundColor = '#f3f4f6'; 
             }
 
             const seguridadValue = mapData.security[r][c];
-            const hue = (10 - seguridadValue) * 15;
-            cell.style.borderColor = `hsl(${hue}, 100%, 40%)`;
-            cell.style.borderStyle = 'solid';
-            cell.style.borderWidth = '2px';
-            
             const traficoValue = mapData.traffic[r][c];
-            const dot = document.createElement('div');
-            const dotSize = traficoValue === 0 ? 0 : traficoValue * 4;
+
+            cell.style.borderStyle = 'none'; 
             
-            dot.style.width = `${dotSize}px`; 
-            dot.style.height = `${dotSize}px`;
-            dot.style.backgroundColor = traficoValue > 0 ? '#ef4444' : 'transparent';
-            dot.style.borderRadius = '50%';
+            const content = document.createElement('div');
+            content.classList.add('cell-content');
             
-            cell.appendChild(dot);
+            const traficoSpan = document.createElement('span');
+            traficoSpan.classList.add('trafico-text');
+            traficoSpan.textContent = `T: ${traficoValue}`;
             
-            if (c === startX && r === startY) {
+            const seguridadSpan = document.createElement('span');
+            seguridadSpan.classList.add('seguridad-text');
+            seguridadSpan.textContent = `S: ${seguridadValue}`;
+
+            content.appendChild(traficoSpan);
+            content.appendChild(seguridadSpan);
+            cell.appendChild(content);
+            
+            if (c === startY && r === startX) { // OJO AQUI INVERTIDOS PQ SON ARREGLOS
                 cell.classList.add('origin-cell');
-                cell.innerHTML = 'O'; 
-            } else if (c === endX && r === endY) {
+                cell.innerHTML += 'O'; 
+            } else if (c === endY && r === endX) {
                 cell.classList.add('destination-cell');
-                cell.innerHTML = 'D'; 
+                cell.innerHTML += 'D'; 
             }
             
             gridContainer.appendChild(cell);
@@ -452,13 +453,11 @@ function getMazeInput(textMaze){
         }
 
         return {
-            M: M,
-            N: DIMENSIONS[1],
-            origin_coords: {x: COORDS[1], y: COORDS[0]},
-            destination_coords: {x: COORDS[3], y: COORDS[2]},
-            maze: maze,
-            security: security,
-            traffic: traffic
+            dimensions: DIMENSIONS,
+            coords: COORDS,
+            transit: maze,
+            security: maze,
+            traffic: maze
         };
     } catch {
         return false;
@@ -467,16 +466,14 @@ function getMazeInput(textMaze){
 
 function solveMazeProblem(){
     const textMaze = mazeInput.value.split('\n');
-    const maze = getMazeInput(textMaze);
-    if(maze){
-        drawMaze({
-            dimensions: [maze.M, maze.N],
-            coords: [maze.origin_coords.x, maze.origin_coords.y, maze.destination_coords.x, maze.destination_coords.y],
-            transit: maze.maze,
-            security: maze.security,
-            traffic: maze.traffic
-        });
+    const mapData = getMazeInput(textMaze);
+    if(!mapData){
+        solveMaze.disabled = false;
+        solveMaze.textContent = 'Solve';
+        return;
     }
+
+    drawMaze(mapData);
 }
 
 solveMaze.addEventListener('click', () => {
