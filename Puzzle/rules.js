@@ -1,7 +1,7 @@
 export class Node{
     constructor(key, x, y, visited, parent = null){
-        this.key = key;
-        this.blankCoords = {x: x, y: y};
+        this.key = key;//valores del nodo en todsa sus posiciones
+        this.blankCoords = {x: x, y: y};//posición dle cero
         this.visited = visited;
         this.parent = parent;
         this.value = -1;
@@ -26,7 +26,7 @@ export class Node{
         return false;
     }
 
-    getValue(qf){
+    getValue(qf){//Revisa el nodo actual con el valor objetico supongo
         let value = 0;
         let index = 0;
         for (const char of this.key) {
@@ -38,6 +38,7 @@ export class Node{
     }
 
     _applyRule(nextX, nextY){
+        //convertir al índice
         const nextCoords = nextX + nextY * 3;
         const currentCoords = this.blankCoords.x + this.blankCoords.y * 3;
 
@@ -45,11 +46,11 @@ export class Node{
             return null;
         }
 
-        const chars = this.key.split('');
-        const temp = chars[currentCoords];
-        chars[currentCoords] = chars[nextCoords];
+        const chars = this.key.split('');//arreglo de cada num de la llave
+        const temp = chars[currentCoords];//0 con coordenadas actuales
+        chars[currentCoords] = chars[nextCoords];//mueve la ficha de al lado donde estaba el cero
         chars[nextCoords] = temp;
-        const newKey = chars.join('');
+        const newKey = chars.join('');//une la llave ya una vez se movio el 0
 
         if (this.visited.has(newKey)) {
             return null;
@@ -60,11 +61,11 @@ export class Node{
     }
 
     _ruleUp(){
-        return this._applyRule(this.blankCoords.x, this.blankCoords.y + 1);
+        return this._applyRule(this.blankCoords.x, this.blankCoords.y - 1);
     }
 
     _ruleDown(){
-        return this._applyRule(this.blankCoords.x, this.blankCoords.y - 1);
+        return this._applyRule(this.blankCoords.x, this.blankCoords.y + 1);
     }
 
     _ruleRight(){

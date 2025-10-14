@@ -1,22 +1,27 @@
-export function bestFirst(qf, priorityQueue) {    
-    const allNodes = [];
-    const path = [];
-    let result = false;
-    while(heap){
-        let current = priorityQueue.extractMax();
-        allNodes.append(current);
-        let result = current.expand(priorityQueue, qf);
-        if (result){
-            break;
-        }
-    }
+export function bestFirst(qf, priorityQueue) {
+  const allNodes = [];
+  const path = [];
+  let result = false;
 
-    let pathNode = result;
-    while (pathNode) {
-        path.push(pathNode);
-        pathNode = pathNode.parent;
-    }
-    path.reverse();
+  while (!priorityQueue.isEmpty()) {
+    const current = priorityQueue.extractMin();
+    allNodes.push(current);
 
-    return path;
+    const expandedGoal = current.expand(priorityQueue, qf);
+    if (expandedGoal) {
+      result = expandedGoal;
+      break;
+    }
+  }
+
+  if (!result) return [];
+
+  // reconstruir ruta
+  let pathNode = result;
+  while (pathNode) {
+    path.push(pathNode);
+    pathNode = pathNode.parent;
+  }
+  path.reverse();
+  return path;
 }

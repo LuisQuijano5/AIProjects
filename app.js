@@ -3,7 +3,7 @@ import { Knight } from './Knights/rules.js';
 import { depthFirst } from './Knights/algorithm.js';
 import { Node } from './Puzzle/rules.js';
 import { bestFirst } from './Puzzle/algorithm.js';
-import { MaxHeap } from './Puzzle/heap.js';
+import { MinHeap } from './Puzzle/heap.js';
 
 let solutionPath = [];
 let currentStep = 0;
@@ -27,8 +27,24 @@ const controlsContainer = document.getElementById('controls-container');
 
 const solvePuzzle = document.getElementById('solve-puzzle');
 const statusPuzzle = document.getElementById('status-puzzle');
-const puzzleNext = document.getElementById('puzzleNext');
-const puzzleInfo = document.getElementById('puzzlInfo');
+// --- PUZZLE UI references ---
+const puzzleInput = document.getElementById('puzzle-input');
+const puzzleMoves = document.getElementById('puzzle-moves');
+const puzzleRoute = document.getElementById('puzzle-route');
+const puzzleGridCurrent = document.getElementById('puzzle-current');
+const puzzleGridGoal = document.getElementById('puzzle-goal');
+const puzzleControls = document.getElementById('puzzleControls');
+const puzzlePrev = document.getElementById('puzzlePrev');
+const puzzleNextBtn = document.getElementById('puzzleNext');
+
+// Corrige el id (tu código tenía 'puzzlInfo' con typo)
+const puzzleInfo = document.getElementById('puzzleInfo');
+
+// Estado del puzzle
+let puzzlePath = [];
+let puzzleStep = 0;
+let puzzleGoalKey = '';
+let puzzleMovesList = [];
 
 const mazeInput = document.getElementById('maze-input');
 const solveMaze = document.getElementById('solve-maze');
@@ -210,10 +226,153 @@ solveButton.addEventListener('click', () => {
     }
 });
 
-// PUZZLE STUFF
-function solvePuzzleProblem(){
-
+function keyToMatrix(key) {
+  return [
+    key.slice(0,3).split(''),
+    key.slice(3,6).split(''),
+    key.slice(6,9).split('')
+  ];
 }
+
+function renderPuzzleBoard(key, container, highlightGoal = false) {
+  container.innerHTML = '';
+  const mat = keyToMatrix(key);
+  for (let r = 0; r < 3; r++) {
+    for (let c = 0; c < 3; c++) {
+      const v = mat[r][c];
+      const tile = document.createElement('div');
+      tile.className = 'tile' + (v === '0' ? ' zero' : '');
+      tile.textContent = v === '0' ? '0' : v;
+      if (highlightGoal && puzzleGoalKey && puzzleGoalKey[r*3 + c] === v && v !== '0') {
+        tile.classList.add('goal');
+      }
+      container.appendChild(tile);
+    }
+  }
+}
+
+function parsePuzzleTextarea(txt) {
+  // lee 18 números (6 líneas de 3) separados por espacios/saltos
+  const tokens = txt.trim().split(/\s+/);
+  if (tokens.length < 18) return null;
+  const startKey = tokens.slice(0, 9).join('');
+  const goalKey  = tokens.slice(9, 18).join('');
+  return { startKey, goalKey };
+}
+
+function movesFromPath(path) {
+  const moves = [];
+  for (let i = 1; i < path.length; i++) {
+    const a = path[i - 1].blankCoords;
+    const b = path[i].blankCoords;
+    if (b.y === a.y - 1 && b.x === a.x) moves.push('Up');
+    else if (b.y === a.y + 1 && b.x === a.x) moves.push('Down');
+    else if (b.x === a.x + 1 && b.y === a.y) moves.push('Right');
+    else if (b.x === a.x - 1 && b.y === a.y) moves.push('Left');
+    else moves.push('(?)');
+  }
+  return moves;
+}
+
+function showPuzzleStatus(text, isError=false) {
+  statusPuzzle.textContent = text;
+  statusPuzzle.className = `mt-4 p-3 rounded-lg text-sm font-medium text-center ${isError ? 'bg-red-100 text-red-700' : 'bg-yellow-100 text-yellow-700'}`;
+  statusPuzzle.style.display = 'block';
+}
+
+function updatePuzzleControls() {
+  puzzleInfo.textContent = `Step: ${puzzleStep + 1} / ${puzzlePath.length}`;
+  puzzlePrev.disabled = puzzleStep <= 0;
+  puzzleNextBtn.disabled = puzzleStep >= puzzlePath.length - 1;
+}
+
+function renderPuzzleStep() {
+  const node = puzzlePath[puzzleStep];
+  renderPuzzleBoard(node.key, puzzleGridCurrent, true);
+}
+
+
+// PUZZLE STUFF
+function solvePuzzleProblem() {
+  const parsed = parsePuzzleTextarea(puzzleInput.value || '');
+  if (!parsed) {
+    showPuzzleStatus('Entrada inválida. Debe contener 6 renglones de 3 números (total 18).', true);
+    solvePuzzle.disabled = false;
+    solvePuzzle.textContent = 'Solve Puzzle';
+    return;
+  }
+
+  const { startKey, goalKey } = parsed;
+  puzzleGoalKey = goalKey;
+
+  // Render objetivo a la derecha desde el inicio
+  renderPuzzleBoard(goalKey, puzzleGridGoal);
+
+  // Preparar nodo inicial y cola
+  const visited = new Set([startKey]);
+  const bi = startKey.indexOf('0');
+  const startNode = new Node(startKey, bi % 3, Math.floor(bi / 3), visited, null);
+  startNode.getValue(goalKey);
+
+  const pq = new MinHeap();
+  pq.insert(startNode);
+
+  // Ejecutar búsqueda (Greedy Best-First)
+  const path = bestFirst(goalKey, pq);
+
+  // Restaurar botón
+  solvePuzzle.disabled = false;
+  solvePuzzle.textContent = 'Solve Puzzle';
+
+  if (!path || path.length === 0) {
+    showPuzzleStatus('No se encontró solución con Greedy Best-First.', true);
+    puzzleControls.classList.add('hidden');
+    puzzleGridCurrent.innerHTML = '';
+    puzzleMoves.textContent = '';
+    puzzleRoute.textContent = '';
+    return;
+  }
+
+  // Guardar estado y dibujar
+  puzzlePath = path;
+  puzzleStep = 0;
+  renderPuzzleStep();
+  renderPuzzleBoard(goalKey, puzzleGridGoal);
+
+  // Jugadas y ruta textual
+  puzzleMovesList = movesFromPath(path);
+  puzzleMoves.textContent = puzzleMovesList.length
+    ? puzzleMovesList.join(' -> ')
+    : '(Sin movimientos; ya estás en el objetivo)';
+
+  puzzleRoute.innerHTML = path
+    .map((n, i) => `Paso ${i}: ${n.key}`)
+    .join('<br>');
+
+  // Mostrar controles
+  puzzleControls.classList.remove('hidden');
+  updatePuzzleControls();
+
+  // Mensaje de éxito
+  showPuzzleStatus(`Solución encontrada. ${puzzleMovesList.length} jugadas.`, false);
+}
+
+puzzlePrev.addEventListener('click', () => {
+  if (puzzleStep > 0) {
+    puzzleStep--;
+    renderPuzzleStep();
+    updatePuzzleControls();
+  }
+});
+
+puzzleNextBtn.addEventListener('click', () => {
+  if (puzzleStep < puzzlePath.length - 1) {
+    puzzleStep++;
+    renderPuzzleStep();
+    updatePuzzleControls();
+  }
+});
+
 
 solvePuzzle.addEventListener('click', () => {
     statusPuzzle.style.display = 'none';
