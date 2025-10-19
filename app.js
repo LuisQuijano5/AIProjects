@@ -2,8 +2,10 @@
 import { Knight } from './Knights/rules.js';
 import { depthFirst } from './Knights/algorithm.js';
 import { Node } from './Puzzle/rules.js';
+import { MazeNode } from './Maze/rules.js';
 import { bestFirst } from './Puzzle/algorithm.js';
-import { MinHeap } from './Puzzle/heap.js';
+import { bestFirstMaze } from './Maze/algorithm.js';
+import { MinHeap } from './heap.js';
 
 let solutionPath = [];
 let currentStep = 0;
@@ -385,7 +387,30 @@ solvePuzzle.addEventListener('click', () => {
 
 
 // MAZE STUFF
-function drawMaze(mapData) {
+function colorPaths(paths, bestPathIndex, mapData) {
+
+    const gridContainer = document.getElementById('maze-map');
+
+    paths.forEach((path, index) => {
+        const isBestPath = index === bestPathIndex;
+
+        path.forEach(node => {
+            if (node.coords.x === mapData.coords[0] && node.coords.y === mapData.coords[1]) return; // Start
+            if (node.coords.x === mapData.coords[2] && node.coords.y === mapData.coords[3]) return; // End
+
+            const cellIndex = node.coords.x * mapData.dimensions[1] + node.coords.y;
+            const cell = gridContainer.children[cellIndex];
+
+            if (cell) {
+                if (mapData.transit[node.coords.x][node.coords.y] !== 1) {
+                    cell.classList.add(isBestPath ? 'best-path' : 'other-path');
+                }
+            }
+        });
+    });
+}
+
+function drawMaze(mapData, paths = [], bestPathIndex = -1) {
     const gridContainer = document.getElementById('maze-map');
     gridContainer.innerHTML = ''; 
 
@@ -394,15 +419,42 @@ function drawMaze(mapData) {
     
     const [startX, startY, endX, endY] = mapData.coords; 
 
+    const isCellOnPath = (r, c) => {
+        let pathType = null;
+
+        if (paths.length > 0) {
+            paths.forEach((path, index) => {
+                const found = path.find(node => node.coords.x === r && node.coords.y === c);
+                if (found) {
+                    if (index === bestPathIndex) {
+                        pathType = 'best';
+                    } else if (pathType !== 'best') { 
+                        pathType = 'other';
+                    }
+                }
+            });
+        }
+        return pathType;
+    };
+
     for (let r = 0; r < rows; r++) {
         for (let c = 0; c < cols; c++) {
             const cell = document.createElement('div');
             cell.classList.add('maze-cell'); 
+            const pathType = isCellOnPath(r, c);
             
-            if (mapData.transit[r][c] === 1) {
-                cell.style.backgroundColor = 'rgba(145, 148, 144, 0.8)'; 
+            if (pathType === 'best') {
+                cell.style.backgroundColor = 'rgb(144, 238, 144)'; // Light Green
+                cell.classList.add('best-path');
+            } else if (pathType === 'other') {
+                cell.style.backgroundColor = 'rgb(173, 216, 230)'; // Light Blue
+                cell.classList.add('other-path');
             } else {
-                cell.style.backgroundColor = '#f3f4f6'; 
+                if (mapData.transit[r][c] === 1) {
+                    cell.style.backgroundColor = 'rgba(145, 148, 144, 0.8)'; 
+                } else {
+                    cell.style.backgroundColor = '#f3f4f6'; 
+                }
             }
 
             const seguridadValue = mapData.security[r][c];
@@ -456,8 +508,8 @@ function getMazeInput(textMaze){
             dimensions: DIMENSIONS,
             coords: COORDS,
             transit: maze,
-            security: maze,
-            traffic: maze
+            security: security,
+            traffic: traffic
         };
     } catch {
         return false;
@@ -468,12 +520,39 @@ function solveMazeProblem(){
     const textMaze = mazeInput.value.split('\n');
     const mapData = getMazeInput(textMaze);
     if(!mapData){
+        //PON UNA ALERTA AQUI ULISES
         solveMaze.disabled = false;
         solveMaze.textContent = 'Solve';
         return;
     }
 
     drawMaze(mapData);
+
+    // Preparar nodo inicial y cola
+    const visited = new Set();
+    visited.add(`${mapData.coords[0]},${mapData.coords[1]}`);
+    const startNode = new MazeNode(mapData.coords[0], mapData.coords[1], visited, mapData, null);
+
+    const pq = new MinHeap();
+    pq.insert(startNode);
+
+    // Ejecutar búsqueda (Greedy Best-First)
+    const {bestPathIndex, paths} = bestFirstMaze(pq);
+    if(bestPathIndex === -1){
+        // Indicar aqui que no s eenceontro solucionnnn PON AQUI LA LAERTA TMB ULISES
+        solveMaze.disabled = false;
+        solveMaze.textContent = 'Solve Maze';
+        return;
+    }
+    //HAZ QUE EN EL RECUERDRO ABAJO DEL MAPA SE VEA EN COORDENADAS LOS DOS CAMINOS E INDICA CUALE S EL MEJOR ULISES
+    //ULISES CHECA SI LO PEUES HACER RESPONSIVO
+    console.log(bestPathIndex);
+    console.log(paths);
+    drawMaze(mapData, paths, bestPathIndex);
+
+    // Restaurar botón
+    solveMaze.disabled = false;
+    solveMaze.textContent = 'Solve Maze';
 }
 
 solveMaze.addEventListener('click', () => {

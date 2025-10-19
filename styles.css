@@ -110,15 +110,7 @@
     color: white !important;
 }
 
-.origin-cell {
-    border-color: #f59e0b !important;
-    box-shadow: 0 0 10px rgba(245, 158, 11, 0.7);
-}
 
-.destination-cell {
-    border-color: #10b981 !important;
-    box-shadow: 0 0 10px rgba(16, 185, 129, 0.7);
-}
 
 .puzzle-grid {
   display: grid;
@@ -149,5 +141,15 @@
   opacity: .9;
 }
 .tile.goal {
-  outline: 3px solid #10b981; /* emerald-500 */
+  outline: 3px solid #10b981; 
+}
+
+.origin-cell {
+    border-color: #f59e0b !important;
+    box-shadow: 0 0 10px rgba(245, 158, 11, 0.7);
+}
+
+.destination-cell {
+    border-color: #10b981 !important;
+    box-shadow: 0 0 10px rgba(16, 185, 129, 0.7);
 }

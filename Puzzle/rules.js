@@ -26,7 +26,7 @@ export class Node{
         return false;
     }
 
-    getValue(qf){//Revisa el nodo actual con el valor objetico supongo
+    getValue(qf){//Revisa el nodo actual con el valor objetico 
         let value = 0;
         let index = 0;
         for (const char of this.key) {
