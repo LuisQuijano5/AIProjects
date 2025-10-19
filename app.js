@@ -6,6 +6,7 @@ import { MazeNode } from './Maze/rules.js';
 import { bestFirst } from './Puzzle/algorithm.js';
 import { bestFirstMaze } from './Maze/algorithm.js';
 import { MinHeap } from './heap.js';
+import { showAlert } from "./alert.js";
 
 let solutionPath = [];
 let currentStep = 0;
@@ -521,6 +522,7 @@ function solveMazeProblem(){
     const mapData = getMazeInput(textMaze);
     if(!mapData){
         //PON UNA ALERTA AQUI ULISES
+        showAlert("Entrada inválida. Verifica el formato del laberinto.", { type: "warning", timeout: 5000 });
         solveMaze.disabled = false;
         solveMaze.textContent = 'Solve';
         return;
@@ -540,6 +542,7 @@ function solveMazeProblem(){
     const {bestPathIndex, paths} = bestFirstMaze(pq);
     if(bestPathIndex === -1){
         // Indicar aqui que no s eenceontro solucionnnn PON AQUI LA LAERTA TMB ULISES
+        showAlert("No se encontró una solución", { type: "error", timeout: 5000 });
         solveMaze.disabled = false;
         solveMaze.textContent = 'Solve Maze';
         return;
@@ -549,6 +552,8 @@ function solveMazeProblem(){
     console.log(bestPathIndex);
     console.log(paths);
     drawMaze(mapData, paths, bestPathIndex);
+    renderMazeResults(paths, bestPathIndex, mapData);   
+    showAlert(`Ruta óptima encontrada. Total de rutas halladas: ${paths.length}`, { type: "success", timeout: 4000 });
 
     // Restaurar botón
     solveMaze.disabled = false;
@@ -564,6 +569,70 @@ solveMaze.addEventListener('click', () => {
         solveMazeProblem();
     }
 });
+
+function summarizePath(path) {
+  const coordsStr = path.map(n => `(${n.coords.x},${n.coords.y})`);
+  const totalCost = path[path.length - 1]?.value ?? 0;
+  return { coordsStr, totalCost, steps: path.length };
+}
+
+function renderMazeResults(paths, bestPathIndex, mapData) {
+  const container = document.getElementById('maze-results');
+  if (!container) return;
+
+  container.innerHTML = '';
+
+  if (!paths || paths.length === 0) {
+    container.innerHTML = `
+      <p class="text-sm text-slate-600">No hay rutas para mostrar.</p>
+    `;
+    return;
+  }
+
+  paths.forEach((path, i) => {
+    const { coordsStr, totalCost, steps } = summarizePath(path);
+
+    const card = document.createElement('div');
+    card.className = 'rounded-lg border p-3 mb-3 bg-white';
+    if (i === bestPathIndex) {
+      card.classList.add('ring-2', 'ring-emerald-400');
+    }
+
+    const header = document.createElement('div');
+    header.className = 'flex items-center justify-between gap-2';
+
+    const title = document.createElement('h3');
+    title.className = 'font-semibold text-slate-800';
+    title.textContent = `Ruta ${i + 1}${i === bestPathIndex ? ' · ÓPTIMA' : ''}`;
+
+    const badge = document.createElement('span');
+    badge.className = `text-xs px-2 py-0.5 rounded ${
+      i === bestPathIndex
+        ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+        : 'bg-slate-50 text-slate-700 border border-slate-200'
+    }`;
+
+    badge.textContent = `Costo: ${totalCost}`;
+
+    header.appendChild(title);
+    header.appendChild(badge);
+
+    const meta = document.createElement('div');
+    meta.className = 'text-xs text-slate-500 mt-1';
+    const [sx, sy, gx, gy] = mapData.coords;
+    meta.textContent = `Pasos: ${steps} — Inicio: (${sx},${sy}) → Meta: (${gx},${gy})`;
+
+    const coordsPre = document.createElement('pre');
+    coordsPre.className =
+      'mt-2 text-xs font-mono whitespace-pre-wrap break-words bg-slate-50 border rounded p-2';
+    coordsPre.textContent = coordsStr.join(' -> ');
+
+    card.appendChild(header);
+    card.appendChild(meta);
+    card.appendChild(coordsPre);
+    container.appendChild(card);
+  });
+}
 
 
 // GENERAL STUFF
