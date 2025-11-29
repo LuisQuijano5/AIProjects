@@ -387,29 +387,6 @@ solvePuzzle.addEventListener('click', () => {
 
 
 // MAZE STUFF
-function colorPaths(paths, bestPathIndex, mapData) {
-
-    const gridContainer = document.getElementById('maze-map');
-
-    paths.forEach((path, index) => {
-        const isBestPath = index === bestPathIndex;
-
-        path.forEach(node => {
-            if (node.coords.x === mapData.coords[0] && node.coords.y === mapData.coords[1]) return; // Start
-            if (node.coords.x === mapData.coords[2] && node.coords.y === mapData.coords[3]) return; // End
-
-            const cellIndex = node.coords.x * mapData.dimensions[1] + node.coords.y;
-            const cell = gridContainer.children[cellIndex];
-
-            if (cell) {
-                if (mapData.transit[node.coords.x][node.coords.y] !== 1) {
-                    cell.classList.add(isBestPath ? 'best-path' : 'other-path');
-                }
-            }
-        });
-    });
-}
-
 function drawMaze(mapData, paths = [], bestPathIndex = -1) {
     const gridContainer = document.getElementById('maze-map');
     gridContainer.innerHTML = ''; 
