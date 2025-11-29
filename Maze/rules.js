@@ -7,7 +7,7 @@ export class MazeNode{
         this.N = this.mapData.dimensions[1];
         this.parent = parent;
         this.inDest = this.coords.x === this.mapData.coords[2] && this.coords.y === this.mapData.coords[3];
-        this.value = parent ? parent.value + this.mapData.traffic[this.coords.x][this.coords.y] + this.mapData.security[this.coords.x][this.coords.y] : this.mapData.traffic[this.coords.x][this.coords.y] + this.mapData.security[this.coords.x][this.coords.y]; // es el cost pero para no refactorizr el heap jaja, acumulativo por eso lo manda el padre
+        this.value = parent ? parent.value + this.mapData.traffic[this.coords.x][this.coords.y] - this.mapData.security[this.coords.x][this.coords.y] : this.mapData.traffic[this.coords.x][this.coords.y] - this.mapData.security[this.coords.x][this.coords.y]; // es el cost pero para no refactorizr el heap jaja, acumulativo por eso lo manda el padre
     }
 
     expand(priorityQueue){

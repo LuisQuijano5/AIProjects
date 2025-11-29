@@ -6,6 +6,7 @@ import { MazeNode } from './Maze/rules.js';
 import { bestFirst } from './Puzzle/algorithm.js';
 import { bestFirstMaze } from './Maze/algorithm.js';
 import { MinHeap } from './heap.js';
+import { showAlert } from "./alert.js";
 
 let solutionPath = [];
 let currentStep = 0;
@@ -38,6 +39,8 @@ const puzzleGridGoal = document.getElementById('puzzle-goal');
 const puzzleControls = document.getElementById('puzzleControls');
 const puzzlePrev = document.getElementById('puzzlePrev');
 const puzzleNextBtn = document.getElementById('puzzleNext');
+const digitBtn = document.getElementById('digit-btn');
+const digitSection = document.getElementById('digit-section');
 
 // Corrige el id (tu código tenía 'puzzlInfo' con typo)
 const puzzleInfo = document.getElementById('puzzleInfo');
@@ -59,6 +62,7 @@ function showSection(section) {
     knightTourSection.classList.add('hidden');
     puzzleSection.classList.add('hidden');
     mazeSection.classList.add('hidden');
+    digitSection.classList.add('hidden');
 
     knightTourBtn.classList.replace('bg-blue-600', 'bg-gray-200');
     knightTourBtn.classList.replace('text-white', 'text-gray-700');
@@ -66,6 +70,8 @@ function showSection(section) {
     puzzleBtn.classList.replace('text-white', 'text-gray-700');
     mazeBtn.classList.replace('bg-blue-600', 'bg-gray-200');
     mazeBtn.classList.replace('text-white', 'text-gray-700');
+    digitBtn.classList.replace('bg-blue-600', 'bg-gray-200');
+    digitBtn.classList.replace('text-white', 'text-gray-700');
 
     section.classList.remove('hidden');
     if (section === knightTourSection) {
@@ -80,12 +86,18 @@ function showSection(section) {
         currentProblem = 'maze';
         mazeBtn.classList.replace('bg-gray-200', 'bg-blue-600');
         mazeBtn.classList.replace('text-gray-700', 'text-white');
+    } else if (section === digitSection) {
+        currentProblem = 'digit';
+        digitBtn.classList.replace('bg-gray-200', 'bg-blue-600');
+        digitBtn.classList.replace('text-gray-700', 'text-white');
     }
+    
 }
 
 knightTourBtn.addEventListener('click', () => showSection(knightTourSection));
 puzzleBtn.addEventListener('click', () => showSection(puzzleSection));
 mazeBtn.addEventListener('click', () => showSection(mazeSection));
+digitBtn.addEventListener('click', () => showSection(digitSection));
 
 // KNIGHT STUFF
 function displayMessage(text, isError = false) {
@@ -498,6 +510,7 @@ function solveMazeProblem(){
     const mapData = getMazeInput(textMaze);
     if(!mapData){
         //PON UNA ALERTA AQUI ULISES
+        showAlert("Entrada inválida. Verifica el formato del laberinto.", { type: "warning", timeout: 5000 });
         solveMaze.disabled = false;
         solveMaze.textContent = 'Solve';
         return;
@@ -517,6 +530,7 @@ function solveMazeProblem(){
     const {bestPathIndex, paths} = bestFirstMaze(pq);
     if(bestPathIndex === -1){
         // Indicar aqui que no s eenceontro solucionnnn PON AQUI LA LAERTA TMB ULISES
+        showAlert("No se encontró una solución", { type: "error", timeout: 5000 });
         solveMaze.disabled = false;
         solveMaze.textContent = 'Solve Maze';
         return;
@@ -526,6 +540,8 @@ function solveMazeProblem(){
     console.log(bestPathIndex);
     console.log(paths);
     drawMaze(mapData, paths, bestPathIndex);
+    renderMazeResults(paths, bestPathIndex, mapData);   
+    showAlert(`Ruta óptima encontrada. Total de rutas halladas: ${paths.length}`, { type: "success", timeout: 4000 });
 
     // Restaurar botón
     solveMaze.disabled = false;
@@ -541,6 +557,70 @@ solveMaze.addEventListener('click', () => {
         solveMazeProblem();
     }
 });
+
+function summarizePath(path) {
+  const coordsStr = path.map(n => `(${n.coords.x},${n.coords.y})`);
+  const totalCost = path[path.length - 1]?.value ?? 0;
+  return { coordsStr, totalCost, steps: path.length };
+}
+
+function renderMazeResults(paths, bestPathIndex, mapData) {
+  const container = document.getElementById('maze-results');
+  if (!container) return;
+
+  container.innerHTML = '';
+
+  if (!paths || paths.length === 0) {
+    container.innerHTML = `
+      <p class="text-sm text-slate-600">No hay rutas para mostrar.</p>
+    `;
+    return;
+  }
+
+  paths.forEach((path, i) => {
+    const { coordsStr, totalCost, steps } = summarizePath(path);
+
+    const card = document.createElement('div');
+    card.className = 'rounded-lg border p-3 mb-3 bg-white';
+    if (i === bestPathIndex) {
+      card.classList.add('ring-2', 'ring-emerald-400');
+    }
+
+    const header = document.createElement('div');
+    header.className = 'flex items-center justify-between gap-2';
+
+    const title = document.createElement('h3');
+    title.className = 'font-semibold text-slate-800';
+    title.textContent = `Ruta ${i + 1}${i === bestPathIndex ? ' · ÓPTIMA' : ''}`;
+
+    const badge = document.createElement('span');
+    badge.className = `text-xs px-2 py-0.5 rounded ${
+      i === bestPathIndex
+        ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+        : 'bg-slate-50 text-slate-700 border border-slate-200'
+    }`;
+
+    badge.textContent = `Costo: ${totalCost}`;
+
+    header.appendChild(title);
+    header.appendChild(badge);
+
+    const meta = document.createElement('div');
+    meta.className = 'text-xs text-slate-500 mt-1';
+    const [sx, sy, gx, gy] = mapData.coords;
+    meta.textContent = `Pasos: ${steps} — Inicio: (${sx},${sy}) → Meta: (${gx},${gy})`;
+
+    const coordsPre = document.createElement('pre');
+    coordsPre.className =
+      'mt-2 text-xs font-mono whitespace-pre-wrap break-words bg-slate-50 border rounded p-2';
+    coordsPre.textContent = coordsStr.join(' -> ');
+
+    card.appendChild(header);
+    card.appendChild(meta);
+    card.appendChild(coordsPre);
+    container.appendChild(card);
+  });
+}
 
 
 // GENERAL STUFF
@@ -566,3 +646,78 @@ document.getElementById('boardSize').addEventListener('input', (e) => {
     }
 });
 
+// DIGIT RECOGNIZER (MNIST)
+const canvasDigit = document.getElementById("digit-canvas");
+const ctxDigit = canvasDigit.getContext("2d");
+
+let drawingDigit = false;
+ctxDigit.fillStyle = "black";
+ctxDigit.fillRect(0, 0, canvasDigit.width, canvasDigit.height);
+
+ctxDigit.lineWidth = 25;
+ctxDigit.lineCap = "round";
+ctxDigit.strokeStyle = "white";
+
+
+canvasDigit.addEventListener("mousedown", () => drawingDigit = true);
+canvasDigit.addEventListener("mouseup", () => drawingDigit = false);
+canvasDigit.addEventListener("mouseout", () => drawingDigit = false);
+
+canvasDigit.addEventListener("mousemove", (e) => {
+    if (!drawingDigit) return;
+    const rect = canvasDigit.getBoundingClientRect();
+    ctxDigit.beginPath();
+    ctxDigit.moveTo(e.clientX - rect.left, e.clientY - rect.top);
+    ctxDigit.lineTo(e.clientX - rect.left + 1, e.clientY - rect.top + 1);
+    ctxDigit.stroke();
+});
+
+document.getElementById("clear-canvas").addEventListener("click", () => {
+    ctxDigit.fillStyle = "black";
+    ctxDigit.fillRect(0, 0, canvasDigit.width, canvasDigit.height);
+});
+
+function getScaledPixelsDigit() {
+
+    //Crear canvas temporal 28x28
+    const temp = document.createElement("canvas");
+    temp.width = 28;
+    temp.height = 28;
+    const tctx = temp.getContext("2d");
+
+    //Fondo negro
+    tctx.fillStyle = "black";
+    tctx.fillRect(0, 0, 28, 28);
+    tctx.drawImage(canvasDigit, 0, 0, 28, 28);
+    const img = tctx.getImageData(0, 0, 28, 28).data;
+    const pixels = [];
+
+    for (let i = 0; i < img.length; i += 4) {
+        const r = img[i];
+        const g = img[i + 1];
+        const b = img[i + 2];
+
+        let gray = 0.299 * r + 0.587 * g + 0.114 * b;
+        pixels.push(gray);
+    }
+
+    return pixels;
+}
+
+
+document.getElementById("predict-digit").addEventListener("click", async () => {
+    const pixels = getScaledPixelsDigit();
+
+    const res = await fetch("https://digit-recognizer-tbzs.onrender.com/predict", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ pixels })
+    });
+
+    const data = await res.json();
+
+    console.log("Respuesta del backend:", data);
+
+    document.getElementById("digit-result").classList.remove("hidden");
+    document.getElementById("digit-output").innerText = data.prediction;
+});
