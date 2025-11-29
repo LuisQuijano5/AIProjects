@@ -39,6 +39,8 @@ const puzzleGridGoal = document.getElementById('puzzle-goal');
 const puzzleControls = document.getElementById('puzzleControls');
 const puzzlePrev = document.getElementById('puzzlePrev');
 const puzzleNextBtn = document.getElementById('puzzleNext');
+const digitBtn = document.getElementById('digit-btn');
+const digitSection = document.getElementById('digit-section');
 
 // Corrige el id (tu código tenía 'puzzlInfo' con typo)
 const puzzleInfo = document.getElementById('puzzleInfo');
@@ -60,6 +62,7 @@ function showSection(section) {
     knightTourSection.classList.add('hidden');
     puzzleSection.classList.add('hidden');
     mazeSection.classList.add('hidden');
+    digitSection.classList.add('hidden');
 
     knightTourBtn.classList.replace('bg-blue-600', 'bg-gray-200');
     knightTourBtn.classList.replace('text-white', 'text-gray-700');
@@ -67,6 +70,8 @@ function showSection(section) {
     puzzleBtn.classList.replace('text-white', 'text-gray-700');
     mazeBtn.classList.replace('bg-blue-600', 'bg-gray-200');
     mazeBtn.classList.replace('text-white', 'text-gray-700');
+    digitBtn.classList.replace('bg-blue-600', 'bg-gray-200');
+    digitBtn.classList.replace('text-white', 'text-gray-700');
 
     section.classList.remove('hidden');
     if (section === knightTourSection) {
@@ -81,12 +86,18 @@ function showSection(section) {
         currentProblem = 'maze';
         mazeBtn.classList.replace('bg-gray-200', 'bg-blue-600');
         mazeBtn.classList.replace('text-gray-700', 'text-white');
+    } else if (section === digitSection) {
+        currentProblem = 'digit';
+        digitBtn.classList.replace('bg-gray-200', 'bg-blue-600');
+        digitBtn.classList.replace('text-gray-700', 'text-white');
     }
+    
 }
 
 knightTourBtn.addEventListener('click', () => showSection(knightTourSection));
 puzzleBtn.addEventListener('click', () => showSection(puzzleSection));
 mazeBtn.addEventListener('click', () => showSection(mazeSection));
+digitBtn.addEventListener('click', () => showSection(digitSection));
 
 // KNIGHT STUFF
 function displayMessage(text, isError = false) {
@@ -658,3 +669,78 @@ document.getElementById('boardSize').addEventListener('input', (e) => {
     }
 });
 
+// DIGIT RECOGNIZER (MNIST)
+const canvasDigit = document.getElementById("digit-canvas");
+const ctxDigit = canvasDigit.getContext("2d");
+
+let drawingDigit = false;
+ctxDigit.fillStyle = "black";
+ctxDigit.fillRect(0, 0, canvasDigit.width, canvasDigit.height);
+
+ctxDigit.lineWidth = 25;
+ctxDigit.lineCap = "round";
+ctxDigit.strokeStyle = "white";
+
+
+canvasDigit.addEventListener("mousedown", () => drawingDigit = true);
+canvasDigit.addEventListener("mouseup", () => drawingDigit = false);
+canvasDigit.addEventListener("mouseout", () => drawingDigit = false);
+
+canvasDigit.addEventListener("mousemove", (e) => {
+    if (!drawingDigit) return;
+    const rect = canvasDigit.getBoundingClientRect();
+    ctxDigit.beginPath();
+    ctxDigit.moveTo(e.clientX - rect.left, e.clientY - rect.top);
+    ctxDigit.lineTo(e.clientX - rect.left + 1, e.clientY - rect.top + 1);
+    ctxDigit.stroke();
+});
+
+document.getElementById("clear-canvas").addEventListener("click", () => {
+    ctxDigit.fillStyle = "black";
+    ctxDigit.fillRect(0, 0, canvasDigit.width, canvasDigit.height);
+});
+
+function getScaledPixelsDigit() {
+
+    //Crear canvas temporal 28x28
+    const temp = document.createElement("canvas");
+    temp.width = 28;
+    temp.height = 28;
+    const tctx = temp.getContext("2d");
+
+    //Fondo negro
+    tctx.fillStyle = "black";
+    tctx.fillRect(0, 0, 28, 28);
+    tctx.drawImage(canvasDigit, 0, 0, 28, 28);
+    const img = tctx.getImageData(0, 0, 28, 28).data;
+    const pixels = [];
+
+    for (let i = 0; i < img.length; i += 4) {
+        const r = img[i];
+        const g = img[i + 1];
+        const b = img[i + 2];
+
+        let gray = 0.299 * r + 0.587 * g + 0.114 * b;
+        pixels.push(gray);
+    }
+
+    return pixels;
+}
+
+
+document.getElementById("predict-digit").addEventListener("click", async () => {
+    const pixels = getScaledPixelsDigit();
+
+    const res = await fetch("https://digit-recognizer-tbzs.onrender.com/predict", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ pixels })
+    });
+
+    const data = await res.json();
+
+    console.log("Respuesta del backend:", data);
+
+    document.getElementById("digit-result").classList.remove("hidden");
+    document.getElementById("digit-output").innerText = data.prediction;
+});
