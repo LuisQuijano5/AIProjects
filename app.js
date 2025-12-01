@@ -131,18 +131,16 @@ function handleNextStep() {
 function renderBoard(pathData, step, N) {
     boardContainer.innerHTML = '';
     boardContainer.style.gridTemplateColumns = `repeat(${N}, 1fr)`;
-    boardContainer.style.gridTemplateRows = `repeat(${N}, 1fr)`;
-    const cellSize = `calc(600px / ${N})`; 
 
     const currentX = pathData[step][0];
     const currentY = pathData[step][1];
-    
+
     for (let y = 0; y < N; y++) {
         for (let x = 0; x < N; x++) {
             const isDark = (x + y) % 2 === 0;
             const square = document.createElement('div');
-            square.className = `square ${isDark ? 'dark' : 'light'}`;
-            square.style.width = square.style.height = cellSize;
+            
+            square.className = `square ${isDark ? 'dark' : 'light'} aspect-square flex justify-center items-center relative`;
 
             let stepNumber = -1;
             for (let i = 0; i < pathData.length; i++) {
@@ -153,17 +151,21 @@ function renderBoard(pathData, step, N) {
             }
 
             if (stepNumber !== -1) {
-                square.textContent = stepNumber;
+                if (!(x === currentX && y === currentY)) {
+                    square.textContent = stepNumber;
+                }
+
                 if (stepNumber <= step) {
                     square.classList.add('visited-step');
                     square.style.color = isDark ? '#d1d5db' : '#374151'; 
                 }
             }
-            
+
             if (x === currentX && y === currentY) {
-                square.innerHTML = `<div class="knight">${step}</div>`;
+                square.innerHTML = `<div class="knight text-xl md:text-3xl">♞</div>`;
             } else if (stepNumber === pathData.length - 1 && step === pathData.length - 1) {
                 square.classList.add('bg-green-100');
+                square.textContent = stepNumber;
             }
 
             boardContainer.appendChild(square);
@@ -685,6 +687,36 @@ canvasDigit.addEventListener("mousemove", (e) => {
 
     [lastX, lastY] = [currentX, currentY];
 });
+
+canvasDigit.addEventListener("touchstart", (e) => {
+    e.preventDefault(); 
+    
+    drawingDigit = true;
+    const rect = canvasDigit.getBoundingClientRect();
+    
+    const touch = e.touches[0]; 
+    [lastX, lastY] = [touch.clientX - rect.left, touch.clientY - rect.top];
+}, { passive: false }); 
+
+canvasDigit.addEventListener("touchmove", (e) => {
+    e.preventDefault(); 
+    if (!drawingDigit) return;
+
+    const rect = canvasDigit.getBoundingClientRect();
+    const touch = e.touches[0];
+    
+    const currentX = touch.clientX - rect.left;
+    const currentY = touch.clientY - rect.top;
+
+    ctxDigit.beginPath();
+    ctxDigit.moveTo(lastX, lastY);
+    ctxDigit.lineTo(currentX, currentY);
+    ctxDigit.stroke();
+
+    [lastX, lastY] = [currentX, currentY];
+}, { passive: false });
+
+canvasDigit.addEventListener("touchend", () => drawingDigit = false);
 
 document.getElementById("clear-canvas").addEventListener("click", () => {
     ctxDigit.fillStyle = "black";
