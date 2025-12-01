@@ -42,7 +42,7 @@ const puzzleNextBtn = document.getElementById('puzzleNext');
 const digitBtn = document.getElementById('digit-btn');
 const digitSection = document.getElementById('digit-section');
 
-// Corrige el id (tu código tenía 'puzzlInfo' con typo)
+// Corrige el id 
 const puzzleInfo = document.getElementById('puzzleInfo');
 
 // Estado del puzzle
@@ -651,25 +651,39 @@ const canvasDigit = document.getElementById("digit-canvas");
 const ctxDigit = canvasDigit.getContext("2d");
 
 let drawingDigit = false;
+
 ctxDigit.fillStyle = "black";
 ctxDigit.fillRect(0, 0, canvasDigit.width, canvasDigit.height);
-
-ctxDigit.lineWidth = 25;
-ctxDigit.lineCap = "round";
+ctxDigit.lineWidth = 25; 
+ctxDigit.lineCap = "round"; 
+ctxDigit.lineJoin = "round"; 
 ctxDigit.strokeStyle = "white";
 
+let lastX = 0;
+let lastY = 0;
 
-canvasDigit.addEventListener("mousedown", () => drawingDigit = true);
+canvasDigit.addEventListener("mousedown", (e) => {
+    drawingDigit = true;
+    const rect = canvasDigit.getBoundingClientRect();
+    [lastX, lastY] = [e.clientX - rect.left, e.clientY - rect.top];
+});
+
 canvasDigit.addEventListener("mouseup", () => drawingDigit = false);
 canvasDigit.addEventListener("mouseout", () => drawingDigit = false);
 
 canvasDigit.addEventListener("mousemove", (e) => {
     if (!drawingDigit) return;
+    
     const rect = canvasDigit.getBoundingClientRect();
+    const currentX = e.clientX - rect.left;
+    const currentY = e.clientY - rect.top;
+
     ctxDigit.beginPath();
-    ctxDigit.moveTo(e.clientX - rect.left, e.clientY - rect.top);
-    ctxDigit.lineTo(e.clientX - rect.left + 1, e.clientY - rect.top + 1);
+    ctxDigit.moveTo(lastX, lastY); 
+    ctxDigit.lineTo(currentX, currentY); 
     ctxDigit.stroke();
+
+    [lastX, lastY] = [currentX, currentY];
 });
 
 document.getElementById("clear-canvas").addEventListener("click", () => {
@@ -713,6 +727,12 @@ document.getElementById("predict-digit").addEventListener("click", async () => {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ pixels })
     });
+
+    // const res = await fetch("http://127.0.0.1:8000/predict", {
+    //     method: "POST",
+    //     headers: { "Content-Type": "application/json" },
+    //     body: JSON.stringify({ pixels })
+    // });
 
     const data = await res.json();
 
